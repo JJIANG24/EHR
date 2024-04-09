@@ -1,9 +1,15 @@
 -- Project: Comprehensive EHR and Financial Data Analysis
 
 -- Step 1: Create Schema
+
+-- The schema defines the structure of our database, providing a blueprint for organizing data efficiently.
+
 CREATE SCHEMA ehr_financial_data;
 
 -- Step 2: Create Tables
+
+-- We create tables to store patient information, diagnosis codes, medical procedures, financial transactions, insurance details, healthcare provider information, and more.
+
 CREATE TABLE ehr_financial_data.patients (
     patient_id INT64 PRIMARY KEY,
     name STRING,
@@ -83,66 +89,30 @@ CREATE TABLE ehr_financial_data.medical_staff (
     specialty STRING
 );
 
--- Step 3: Load Data
--- Load EHR data, diagnosis codes, procedures, financial transactions, insurance plans, healthcare provider information, lab results, admissions data, medical staff information, and more into respective tables.
+-- Step 3: ETL - Extract, Transform, Load
 
--- Load Patients Data
+-- Extract data from external sources or other databases.
+
+-- Step 3a: Extract data from staging tables
+
+-- Transform and clean the extracted data as needed.
+
+-- Step 3b: Transform and clean the extracted data as needed.
+
+-- Load the transformed data into the final database tables.
+
+-- Step 3c: Load data into final tables
+
+-- Example: Load patient data from staging table into final patient table
 INSERT INTO ehr_financial_data.patients (patient_id, name, dob, gender, address, insurance_provider, admission_date, discharge_date, diagnosis_code)
-VALUES
-    (1, 'John Doe', '1980-05-25', 'Male', '123 Main St', 'ABC Insurance', '2022-01-01', '2022-01-05', 'ICD-10-CM Code 1'),
-    (2, 'Jane Smith', '1975-09-15', 'Female', '456 Elm St', 'XYZ Insurance', '2022-01-03', '2022-01-08', 'ICD-10-CM Code 2'),
-    -- Add more rows as needed
-    ;
-
--- Load Diagnosis Codes Data
-INSERT INTO ehr_financial_data.diagnosis_codes (code, description)
-VALUES
-    ('ICD-10-CM Code 1', 'Description for ICD-10-CM Code 1'),
-    ('ICD-10-CM Code 2', 'Description for ICD-10-CM Code 2'),
-    -- Add more rows as needed
-    ;
-
--- Load Procedures Data
--- Assuming similar INSERT statements for other tables...
+SELECT * FROM ehr_financial_data.staging_patients;
 
 -- Step 4: Data Cleaning and Preparation
+
 -- Clean the data by removing duplicates, handling missing values, and ensuring data consistency.
 
--- Handling Missing Values
-UPDATE ehr_financial_data.patients
-SET dob = '1900-01-01'
-WHERE dob IS NULL;
-
--- Removing Duplicates
-DELETE FROM ehr_financial_data.patients
-WHERE patient_id IN (
-    SELECT patient_id
-    FROM (
-        SELECT patient_id, ROW_NUMBER() OVER (PARTITION BY patient_id ORDER BY patient_id) AS rn
-        FROM ehr_financial_data.patients
-    ) AS t
-    WHERE rn > 1
-);
-
--- Data Standardization
-UPDATE ehr_financial_data.patients
-SET gender = UPPER(gender);
-
--- Handling Outliers
-DELETE FROM ehr_financial_data.procedures
-WHERE procedure_cost > (SELECT AVG(procedure_cost) + 3 * STDDEV(procedure_cost) FROM ehr_financial_data.procedures);
-
--- Data Validation
-SELECT *
-FROM ehr_financial_data.procedures
-WHERE procedure_code NOT IN (SELECT code FROM ehr_financial_data.diagnosis_codes);
-
--- Correcting Inconsistencies
-UPDATE ehr_financial_data.healthcare_providers
-SET specialty = 'General Medicine'
-WHERE specialty = 'Internal Medicine';
-
 -- Step 5: Perform Statistical Analysis
+
 -- Conduct advanced statistical analyses to extract meaningful insights from the data.
 
 -- Example 1: Calculate total revenue by insurance provider
@@ -194,45 +164,11 @@ ON
 GROUP BY
     p.gender, p.insurance_provider;
 
--- Example 4: Identify top-performing healthcare providers based on total revenue generated
-WITH provider_revenue AS (
-    SELECT
-        h.provider_id,
-        hp.provider_name,
-        SUM(t.amount) AS total_revenue
-    FROM
-        ehr_financial_data.healthcare_providers hp
-    JOIN
-        ehr_financial_data.procedures h
-    ON
-        hp.provider_id = h.performing_doctor_id
-    JOIN
-        ehr_financial_data.transactions t
-    ON
-        h.patient_id = t.patient_id
-    GROUP BY
-        h.provider_id, hp.provider_name
-)
-SELECT
-    provider_id,
-    provider_name,
-    total_revenue
-FROM
-    provider_revenue
-ORDER BY
-    total_revenue DESC
-LIMIT 10; -- Top 10 providers
-
--- Example 5: Calculate average length of stay in hospital
-SELECT
-    AVG(DATE_DIFF(discharge_date, admission_date, DAY)) AS avg_length_of_stay
-FROM
-    ehr_financial_data.admissions;
-
 -- Step 6: Advanced SQL Techniques
+
 -- Utilize advanced SQL techniques to perform complex analyses and optimize query performance.
 
--- Example 6: Calculate moving average of transaction amounts
+-- Example 4: Calculate moving average of transaction amounts
 SELECT
     transaction_date,
     amount,
@@ -242,7 +178,7 @@ FROM
 ORDER BY
     transaction_date;
 
--- Example 7: Use recursive CTE to generate patient treatment history
+-- Example 5: Use recursive CTE to generate patient treatment history
 WITH RECURSIVE patient_history AS (
     SELECT
         patient_id,
@@ -279,13 +215,14 @@ FROM
     patient_history;
 
 -- Step 7: Optimization
+
 -- Optimize query performance through indexing, partitioning, and materialized views.
 
--- Example 8: Create indexes for frequently queried columns
+-- Example 6: Create indexes for frequently queried columns
 CREATE INDEX idx_patient_id ON ehr_financial_data.transactions(patient_id);
 CREATE INDEX idx_patient_id ON ehr_financial_data.procedures(patient_id);
 
--- Example 9: Partition large tables for improved query speed
+-- Example 7: Partition large tables for improved query speed
 CREATE TABLE ehr_financial_data.transactions_partitioned
 PARTITION BY patient_id
 AS
@@ -294,10 +231,20 @@ SELECT
 FROM
     ehr_financial_data.transactions;
 
--- Example 10: Create materialized views for complex queries
+-- Example 8: Create materialized views for complex queries
 CREATE MATERIALIZED VIEW ehr_financial_data.patient_summary
 AS
 SELECT
     patient_id,
     COUNT(transaction_id) AS transaction_count,
     SUM(amount) AS total_transaction_amount
+FROM
+    ehr_financial_data.transactions
+GROUP BY
+    patient_id;
+
+-- Step 8: Documentation and Reporting
+
+-- Document project methodologies, findings, and insights for knowledge sharing and future reference.
+
+-- End of Project
